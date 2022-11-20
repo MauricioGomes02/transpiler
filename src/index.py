@@ -30,8 +30,15 @@ def p_statement_prime_empty(parser):
   '''statement_prime : empty'''
   parser[0] = []
 
+def p_statement_statement_assign(parser):
+  'statement : statement_assign'
+  statement_assign_node = parser[1]
+  statement_node = create_node('statement')
+  append_node_children(statement_node, statement_assign_node)
+  parser[0] = statement_node
+
 def p_statement_assign(parser):
-  'statement : IDENTIFIER "=" expression'
+  'statement_assign : IDENTIFIER "=" expression'
   identifier = parser[1]
   expression = parser[3]
   add_symbol(identifier, "VARIABLE", parser.lineno(1), value=expression)
@@ -41,7 +48,204 @@ def p_statement_assign(parser):
   append_node_children(statement_assign_node, identifier_leaf)
   append_node_children(statement_assign_node, operator_leaf)
   append_node_children(statement_assign_node, expression)
-  parser[0] = statement_assign_node  
+  parser[0] = statement_assign_node
+
+def p_statement_statement_procedure(parser):
+  'statement : statement_procedure'
+  statement_procedure_node = parser[1]
+  statement_node = create_node('statement_procedure')
+  append_node_children(statement_node, statement_procedure_node)
+
+def p_procedure(parser):
+  'statement_procedure : IDENTIFIER args_prime'
+  identifier = parser[1]
+  identifier_leaf = create_leaf('identifier', value=identifier)
+  symbol = get_symbol(identifier)
+  if symbol['type'] != "PROCEDURE":
+    raise Exception(f"Wrong type symbol, should be 'PROCEDURE': {identifier}: {parser.lineno(1)}")
+
+  args_prime_node = parser[2]
+  optional_args_len = len(symbol["optional_args"])
+  args_prime_node_len = len(args_prime_node["children"])
+
+  if optional_args_len != args_prime_node_len:
+    raise Exception(f"The {identifier} procedure requires {optional_args_len} arguments, but {args_prime_node_len} were passed: line {parser.lineno(1)}")
+
+  statement_procedure_node = create_node('statement_procedure')
+  append_node_children(statement_procedure_node, identifier_leaf)
+  append_node_children(statement_procedure_node, args_prime_node)
+
+  parser[0] = statement_procedure_node
+
+def p_args_prime(parser):
+  'args_prime : args args_prime'
+  args_node = parser[1]
+  args_prime_node_right = parser[2]
+
+  optional_args_prime_node_left = create_node('args_prime')
+  append_node_children(optional_args_prime_node_left, args_node)
+  for optional_args_prime in args_prime_node_right['children']:
+    append_node_children(optional_args_prime_node_left, optional_args_prime)
+  parser[0] = optional_args_prime_node_left
+
+def p_args_prime_empty(parser):
+  'args_prime : empty'
+  args_prime_node = create_node('args_prime')
+  parser[0] = args_prime_node
+
+def p_args_number(parser):
+  'args : NUMBER'
+  number = parser[1]
+  number_leaf = create_leaf('number', value=number)
+  args_node = create_node('args')
+  append_node_children(args_node, number_leaf)
+  parser[0] = args_node
+
+# def p_args_identifier(parser):
+#   'args : IDENTIFIER'
+#   identifier = parser[1]
+#   identifier_leaf = create_leaf('identifier', value=identifier)
+#   args_node = create_node('args')
+#   append_node_children(args_node, identifier_leaf)
+#   parser[0] = args_node
+
+def p_statement_declaration_procedure(parser):
+  'statement : statement_declaration_procedure'
+  declaration_procedure_node = parser[1]
+  statement_node = create_node("statement")
+  append_node_children(statement_node, declaration_procedure_node)
+  parser[0] = statement_node
+
+def p_declaration_procedure(parser):
+  'statement_declaration_procedure : TO IDENTIFIER optional_args_prime declaration_procedure_body'
+  identifier = parser[2]
+  identifier_leaf = create_leaf('identifier', value=identifier)
+
+  optional_args_prime_node = parser[3]
+  optional_arg_names = []
+  for optional_args in optional_args_prime_node['children']:
+    optional_arg_name = optional_args['children'][0]['value']['value']
+    optional_arg_names.append(optional_arg_name)
+  add_symbol(identifier, "PROCEDURE", parser.lineno(2), value=None, optional_args=optional_arg_names)
+  print(get_symbol(identifier))
+
+  declaration_procedure_body_node = parser[4]
+
+  statement_declaration_procedure = create_node('statement_declaration_procedure')
+  append_node_children(statement_declaration_procedure, identifier_leaf)
+  append_node_children(statement_declaration_procedure, optional_args_prime_node)
+  append_node_children(statement_declaration_procedure, declaration_procedure_body_node)
+  parser[0] = statement_declaration_procedure
+
+def p_optional_args_prime(parser):
+  'optional_args_prime : optional_args optional_args_prime'
+  optional_args_node = parser[1]
+  optional_args_prime_node_right = parser[2]
+
+  optional_args_prime_node_left = create_node('optional_args_prime')
+  append_node_children(optional_args_prime_node_left, optional_args_node)
+  for optional_args_prime in optional_args_prime_node_right['children']:
+    append_node_children(optional_args_prime_node_left, optional_args_prime)
+  parser[0] = optional_args_prime_node_left
+
+def p_optional_args_prime_empty(parser):
+  'optional_args_prime : empty'
+  optional_args_prime_node = create_node('optional_args_prime')
+  parser[0] = optional_args_prime_node
+
+def p_optional_args(parser):
+  'optional_args : ":" IDENTIFIER'
+  identifier = parser[2]
+  identifier_leaf = create_leaf('identifier', value=identifier)
+  optional_args_node = create_node('optional_args')
+  append_node_children(optional_args_node, identifier_leaf)
+  parser[0] = optional_args_node
+
+def p_declaration_procedure_body(parser):
+  'declaration_procedure_body : procedure_body procedure_body_prime'
+  procedure_body_node = parser[1]
+  procedure_body_prime_node = parser[2]
+  declaration_procedure_body_node = create_node('declaration_procedure_body')
+  append_node_children(declaration_procedure_body_node, procedure_body_node)
+
+  if procedure_body_prime_node is not None:
+    for procedure_body_prime in procedure_body_prime_node['children']:
+      append_node_children(declaration_procedure_body_node, procedure_body_prime)
+
+  parser[0] = declaration_procedure_body_node
+
+# def p_procedure_body_statement_assign(parser):
+#   'procedure_body : statement_assign'
+#   statement_assign_node = parser[1]
+#   procedure_body_node = create_node('procedure_body')
+#   append_node_children(procedure_body_node, statement_assign_node)
+#   parser[0] = procedure_body_node
+
+def p_procedure_body_statement_procedure(parser):
+  'procedure_body : statement_procedure'
+  statement_procedure_node = parser[1]
+  procedure_body_node = create_node('procedure_body')
+  append_node_children(procedure_body_node, statement_procedure_node)
+  parser[0] = procedure_body_node
+
+def p_procedure_body_prime(parser):
+  'procedure_body_prime : procedure_body procedure_body_prime'
+  procedure_body_node = parser[1]
+  procedure_body_prime_node_right = parser[2]
+  procedure_body_prime_node_left = create_node('procedure_body_prime')
+  append_node_children(procedure_body_prime_node_left, procedure_body_node)
+
+  if procedure_body_prime_node_right is not None:
+    for procedure_body_prime in procedure_body_prime_node_right['children']:
+      append_node_children(procedure_body_prime_node_left, procedure_body_prime)
+
+  parser[0] = procedure_body_prime_node_left
+
+def p_procedure_body_prime_empty(parser):
+  'procedure_body_prime : empty'
+  parser[0] = None
+
+# def p_declaration_procedure_body_procedure(parser):
+#   'declaration_procedure_body : statement_procedure procedure_prime'
+#   statement_procedure_node = parser[1]
+#   procedure_prime_node_right = parser[2]
+  
+#   declaration_procedure_body_node = create_node('procedure_prime')
+#   append_node_children(declaration_procedure_body_node, statement_procedure_node)
+
+#   if procedure_prime_node_right is not None and "children" in procedure_prime_node_right:
+#     for procedure_prime_node in procedure_prime_node_right['children']:
+#       append_node_children(declaration_procedure_body_node, procedure_prime_node)
+
+#   parser[0] = declaration_procedure_body_node
+
+# def p_declaration_procedure_body_statement_assign(parser):
+#   'declaration_procedure_body : statement_assign'
+#   statement_assign_node = parser[1]
+#   declaration_procedure_body_node = create_node('declaration_procedure_body')
+#   append_node_children(declaration_procedure_body_node, statement_assign_node)
+#   parser[0] = declaration_procedure_body_node
+
+# def p_declaration_procedure_body_empty(parser):
+#   'declaration_procedure_body : empty'
+#   parser[0] = None
+
+# def p_procedure_prime(parser):
+#   'procedure_prime : statement_procedure procedure_prime'
+#   statement_procedure_node = parser[1]
+#   procedure_prime_node_right = parser[2]
+  
+#   procedure_prime_node_left = create_node('procedure_prime')
+#   append_node_children(procedure_prime_node_left, statement_procedure_node)
+
+#   for procedure_prime_node in procedure_prime_node_right['children']:
+#     append_node_children(procedure_prime_node_left, procedure_prime_node)
+
+#   parser[0] = procedure_prime_node_left
+
+# def p_procedure_prime_empty(parser):
+#   'procedure_prime : empty'
+#   parser[0] = None
 
 def p_expression_term_expression_prime(parser):
   'expression : term expression_prime'
@@ -142,7 +346,6 @@ def p_term_prime_division(parser):
 
 def p_term_prime(parser):
   'term_prime : empty'
-  # parser[0] = 1
   term_prime_leaf = create_leaf("term_prime", value=1)
   parser[0] = term_prime_leaf
 
@@ -204,7 +407,7 @@ def p_factor_identifier(parser):
   identifier_node = create_node("identifier")
   symbol = get_symbol(identifier)
   if symbol is None:
-    raise Exception(f"Undefined symbol: {parser[1]}: {parser.lineno(1)}")
+    raise Exception(f"Undefined symbol: {identifier}: {parser.lineno(1)}")
   identifier_value_leaf = create_leaf(identifier, value=symbol["value"])
   append_node_children(identifier_node, identifier_value_leaf)
   append_node_children(factor_node, identifier_node)
@@ -213,7 +416,6 @@ def p_factor_identifier(parser):
 def p_empty(prod):
     """empty :"""
     prod[0] = None
-
 
 def p_error(token):
     """Provide a simple error message."""
@@ -237,5 +439,5 @@ def create_leaf(name, **kwargs):
 if __name__ == "__main__":
   lexer_instance = lexer()
   parser = yacc.yacc(start="program")
-  program = parser.parse("a = 3 - 3", lexer=lexer_instance, tracking=False)
-  print(json.dumps(program, indent=2))
+  program = parser.parse("TO mauricio :preto arroz = 4 FO arroz", lexer=lexer_instance, tracking=False)
+  print(json.dumps(program, indent=4))

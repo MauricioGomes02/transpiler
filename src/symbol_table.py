@@ -50,3 +50,6 @@ def set_symbol(symbol, **kwargs):
 def get_symbol(symbol):
     """Retrieve symbol from symbol table."""
     return __symtable.get(symbol)
+
+add_symbol('FO', 'PROCEDURE', None, value=None, optional_args=["num"])
+add_symbol('FORWARD', 'PROCEDURE', None, value=None, optional_args=["num"])

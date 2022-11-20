@@ -7,16 +7,20 @@ class IllegalCharacter(Exception):
 
 tokens = (
   "NUMBER",
-  'IDENTIFIER'
+  'IDENTIFIER',
+  "TO",
+  # "OPTIONAL_ARGUMENT"
 )
 
-literals = ['=', '+', '-', '*', '/', '(', ')', '^']
+literals = ['=', '+', '-', '*', '/', '(', ')', '^', ':']
 
 regular_expressions = {
   "NUMBER" : r"[+-]?\d+([.]\d*)?",
   "IGNORE" : ' \t\r',
   "IDENTIFIER" : r"[_a-zA-Z][_a-zA-Z0-9]*",
-  "NEW_LINE" : r"\n+"
+  "NEW_LINE" : r"\n+",
+  "TO" : r"TO",
+  # "OPTIONAL_ARGUMENT" : r"\:[_a-zA-Z][_a-zA-Z0-9]*"
 }
 
 t_ignore = regular_expressions['IGNORE']
@@ -34,9 +38,18 @@ def t_NUMBER(token):
   token.value = float(token.value)
   return token
 
+@TOKEN(regular_expressions['TO'])
+def t_TO(token):
+  return token
+
 @TOKEN(regular_expressions['IDENTIFIER'])
 def t_IDENTIFIER(token):
   return token
+
+
+# @TOKEN(regular_expressions['OPTIONAL_ARGUMENT'])
+# def t_OPTIONAL_ARGUMENT(token):
+#   return token
 
 def lexer():
     return lex.lex()
