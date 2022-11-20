@@ -12,11 +12,11 @@ def p_program_statement_list(parser):
   statements_node = parser[2]
   program_node = create_node('program')
 
-  append_node_children(program_node, statements_node)
+  append_node_children(program_node, statement_node)
 
   if statements_node is not None:
     if 'children' in statements_node:
-      for statement in statements_node:
+      for statement in statements_node['children']:
         append_node_children(program_node, statement)
 
   parser[0] = program_node
@@ -167,16 +167,25 @@ def p_parameter_expression(parser):
   parser[0] = parameter_leaf
 
 def p_statement_procedure(parser):
-  'statement_procedure : TO IDENTIFIER optional_parameter_list procedure_body'
+  'statement_procedure : TO IDENTIFIER optional_parameter_list procedure_body procedure_body_list END'
   identifier = parser[2]
   identifier_leaf = create_leaf('identifier', value=identifier)
   optional_parameter_list_node = parser[3]
   procedure_body_node = parser[4]
+  procedure_body_list_node = parser[5]
+
+  procedure_body_list_node_new = create_node('procedure_body_list')
+  append_node_children(procedure_body_list_node_new, procedure_body_node)
+
+  if procedure_body_list_node is not None:
+    if 'children' in procedure_body_list_node:
+      for procedure_body in procedure_body_list_node['children']:
+        append_node_children(procedure_body_list_node_new, procedure_body)
 
   statement_procedure_node = create_node('statement_procedure')
   append_node_children(statement_procedure_node, identifier_leaf)
   append_node_children(statement_procedure_node, optional_parameter_list_node)
-  append_node_children(statement_procedure_node, procedure_body_node)
+  append_node_children(statement_procedure_node, procedure_body_list_node_new)
 
   parser[0] = statement_procedure_node
 
@@ -208,9 +217,49 @@ def p_optional_parameter(parser):
   optional_parameter_leaf = create_leaf('optional_parameter', value=optional_parameter)
   parser[0] = optional_parameter_leaf
 
+def p_procedure_body_list(parser):
+  '''
+  procedure_body_list : procedure_body procedure_body_list
+  procedure_body_list : empty
+  '''
+  if len(parser) == 2:
+    parser[0] = None
+    return
+
+  procedure_body_node = parser[1]
+  procedure_body_list_node_right = parser[2]
+
+  procedure_body_list_node_left = create_node('procedure_body_list')
+  append_node_children(procedure_body_list_node_left, procedure_body_node)
+
+  if procedure_body_list_node_right is not None:
+    if 'children' in procedure_body_list_node_right:
+      for procedure_body in procedure_body_list_node_right['children']:
+        append_node_children(procedure_body_list_node_left, procedure_body)
+
+  parser[0] = procedure_body_list_node_left
+
 def p_procedure_body(parser):
-  'procedure_body : empty'
-  parser[0] = None
+  '''
+  procedure_body : procedure
+                 | IDENTIFIER OPEN_PAREN optional_parameter_list CLOSE_PAREN
+  '''
+  if len(parser) == 2:
+    procedure_node = parser[1]
+    procedure_body_node = create_node('procedure_body')
+    append_node_children(procedure_body_node, procedure_node)
+    parser[0] = procedure_body_node
+    return 
+
+  identifier = parser[1]
+  identifier_leaf = create_leaf('identifier', value=identifier)
+  optional_parameter_list_node = parser[3]
+
+  procedure_body_node = create_node('procedure_body')
+  append_node_children(procedure_body_node, identifier_leaf)
+  append_node_children(procedure_body_node, optional_parameter_list_node)
+
+  parser[0] = procedure_body_node
 
 def p_empty(parser):
   'empty :'
@@ -242,5 +291,5 @@ import json
 if __name__ == "__main__":
   lexer = create_lexer()
   parser = yacc.yacc(start="program")
-  program = parser.parse("", lexer=lexer)
+  program = parser.parse("mauricio = 2 + 3 mauricio(arroz) TO mauricio :arroz mauricio(:arroz) END", lexer=lexer)
   print(json.dumps(program, indent=4))

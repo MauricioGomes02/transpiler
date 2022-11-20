@@ -11,6 +11,7 @@ tokens = [
   "ASSIGN",
   "COMMA",
   "TO",
+  "END",
   "OPTIONAL_PARAMETER",
   "IDENTIFIER",
 ]
@@ -33,6 +34,10 @@ def t_NUMBER(token):
 
 def t_TO(token):
   r'TO'
+  return token
+
+def t_END(token):
+  r'END'
   return token
 
 def t_OPTIONAL_PARAMETER(token):
