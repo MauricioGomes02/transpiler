@@ -7,11 +7,21 @@ tokens = [
   "TIMES",
   "DIVIDE",
   "POWER",
-  "EQUALS",
   "ASSIGN",
-  "COMMA",
+  "GT",
+  "LT",
+  "GTE",
+  "LTE",
+  "EQUALS",
+  "NOT_EQUALS",
+  "NOT",
+  "AND",
+  "OR",
   "TO",
   "END",
+  "IF",
+  "ELSE",
+  "THEN",
   "OPTIONAL_PARAMETER",
   "IDENTIFIER",
 ]
@@ -24,8 +34,13 @@ t_MINUS = r'-'
 t_TIMES = r'\*'
 t_DIVIDE = r'\/'
 t_POWER = r'\^'
-t_EQUALS = '=='
 t_ASSIGN = '='
+t_GT = r'\>'
+t_LT = r'\<'
+t_GTE = r'\>='
+t_LTE = r'\<='
+t_EQUALS = '=='
+t_NOT_EQUALS = r'\<\>'
 
 def t_NUMBER(token):
   r'[+-]?\d+([.]\d*)?'
@@ -38,6 +53,30 @@ def t_TO(token):
 
 def t_END(token):
   r'END'
+  return token
+
+def t_IF(token):
+  r'IF'
+  return token
+
+def t_ELSE(token):
+  r'ELSE'
+  return token
+
+def t_THEN(token):
+  r'THEN'
+  return token
+
+def t_NOT(token):
+  r'NOT'
+  return token
+
+def t_AND(token):
+  r'AND'
+  return token
+
+def t_OR(token):
+  r'OR'
   return token
 
 def t_OPTIONAL_PARAMETER(token):

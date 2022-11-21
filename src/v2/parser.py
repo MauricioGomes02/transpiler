@@ -1,6 +1,10 @@
 from lexer import tokens
 
 precedence = (
+  ('left', 'AND', 'OR'),
+  ('left', 'NOT'),
+  ('left', 'EQUALS', 'NOT_EQUALS'),
+  ('left', 'GT', 'LT', 'GTE', 'LTE'),
   ('left', 'PLUS', 'MINUS'),
   ('left', 'TIMES', 'DIVIDE'),
   ('right', 'POWER')
@@ -49,6 +53,8 @@ def p_statement(parser):
   statement : assign
             | procedure
             | statement_procedure
+            | if
+            
   '''
   operation_node = parser[1]
   statement_node = create_node('statement')
@@ -166,6 +172,14 @@ def p_parameter_expression(parser):
   parameter_leaf = create_leaf('parameter', value=expression_node)
   parser[0] = parameter_leaf
 
+def p_parameter_optional_argument(parser):
+  'parameter : optional_parameter'
+  optinal_parameter_leaf = parser[1]
+  parameter_node = create_node('paramter')
+  append_node_children(parameter_node, optinal_parameter_leaf)
+
+  parser[0] = parameter_node
+
 def p_statement_procedure(parser):
   'statement_procedure : TO IDENTIFIER optional_parameter_list procedure_body procedure_body_list END'
   identifier = parser[2]
@@ -242,7 +256,6 @@ def p_procedure_body_list(parser):
 def p_procedure_body(parser):
   '''
   procedure_body : procedure
-                 | IDENTIFIER OPEN_PAREN optional_parameter_list CLOSE_PAREN
   '''
   if len(parser) == 2:
     procedure_node = parser[1]
@@ -260,6 +273,179 @@ def p_procedure_body(parser):
   append_node_children(procedure_body_node, optional_parameter_list_node)
 
   parser[0] = procedure_body_node
+
+def p_if(parser):
+  'if : IF OPEN_PAREN condition CLOSE_PAREN THEN if_body if_body_list else END'
+  condition_node = parser[3]
+
+  if_node = create_node('if')
+  append_node_children(if_node, condition_node)
+
+  if_body_node = parser[6]
+  if_body_list_node = parser[7]
+  if_body_list_node_new = create_node('if_body_list')
+  append_node_children(if_body_list_node_new, if_body_node)
+
+  if if_body_list_node is not None:
+    if 'children' in if_body_list_node:
+      for if_body_list in if_body_list_node['children']:
+        append_node_children(if_body_list_node_new, if_body_list)
+
+  append_node_children(if_node, if_body_list_node_new)
+
+  else_node = parser[8]
+  if else_node is not None:
+    append_node_children(if_node, else_node)
+
+  parser[0] = if_node
+
+def p_condition(parser):
+  '''
+  condition : 
+            | condition_value AND condition_value
+            | condition_value OR condition_value
+            | condition AND condition
+            | condition OR condition
+            | condition AND condition_value
+            | condition OR condition_value
+            | condition_value AND condition
+            | condition_value OR condition
+            | NOT condition
+            | NOT condition_value
+  '''
+  if len(parser) == 4:
+    condition_node_left = parser[1]
+    operator = parser[2]
+    operator_leaf = create_leaf('operator', value=operator)
+    condition_node_right = parser[3]
+
+    conditional_node = create_node('condition')
+    append_node_children(conditional_node, condition_node_left)
+    append_node_children(conditional_node, operator_leaf)
+    append_node_children(conditional_node, condition_node_right)
+    
+    parser[0] = conditional_node
+    return
+
+  operator = parser[1]
+  operator_leaf = create_leaf('operator', value=operator)
+  condition_node_right = parser[2]
+
+  condition_node_left = create_node('condition')
+  append_node_children(condition_node_left, operator_leaf)
+  append_node_children(condition_node_left, condition_node_right)
+  parser[0] = condition_node_left
+
+def p_condition_group(parser):
+  'condition : OPEN_PAREN condition CLOSE_PAREN'
+  condition_node = parser[2]
+  condition_node_new = create_node('condition_group')
+  append_node_children(condition_node_new, condition_node)
+
+  parser[0] = condition_node_new
+
+def p_condition_value(parser):
+  '''
+  condition_value : expression GT expression
+                  | expression LT expression
+                  | expression GTE expression
+                  | expression LTE expression
+                  | expression EQUALS expression
+                  | expression NOT_EQUALS expression
+  '''
+  expression_node_left = parser[1]
+  operator = parser[2]
+  operator_leaf = create_leaf('operator', value=operator)
+  expression_node_right = parser[3]
+
+  condition_value = create_node('condition_value')
+  append_node_children(condition_value, expression_node_left)
+  append_node_children(condition_value, operator_leaf)
+  append_node_children(condition_value, expression_node_right)
+
+  parser[0] = condition_value
+
+def p_if_body_list(parser):
+  '''
+  if_body_list : if_body if_body_list
+               | empty
+  '''
+  if len(parser) == 2:
+    parser[0] = None
+    return
+
+  if_body_node = parser[1]
+  if_body_list_node_right = parser[2]
+
+  if_body_list_node_left = create_node('if_body_list')
+  append_node_children(if_body_list_node_left, if_body_node)
+
+  if if_body_list_node_right is not None:
+    if 'children' in if_body_list_node_right:
+      for if_body in if_body_list_node_right['children']:
+        append_node_children(if_body_list_node_left, if_body)
+
+  parser[0] = if_body_list_node_left
+
+def p_if_body(parser):
+  'if_body : procedure'
+  procedure_node = parser[1]
+  if_body_node = create_node('if_body')
+  append_node_children(if_body_node, procedure_node)
+
+  parser[0] = if_body_node
+
+def p_else(parser):
+  '''
+  else : ELSE else_body else_body_list
+       | empty
+  '''
+  if len(parser) == 2:
+    parser[0] = None
+    return
+
+  else_node = create_node('else')
+
+  else_body_node = parser[2]
+  else_body_list_node = parser[3]
+  else_body_list_node_new = create_node('else_body_list')
+  append_node_children(else_body_list_node_new, else_body_node)
+  if else_body_list_node is not None:
+    if 'children' in else_body_list_node:
+      for else_body in else_body_list_node['children']:
+        append_node_children(else_node, else_body)
+
+  parser[0] = else_body_list_node_new
+
+def p_else_body_list(parser):
+  '''
+  else_body_list : else_body else_body_list
+                 | empty
+  '''
+  if len(parser) == 2:
+    parser[0] = None
+    return
+
+  else_body_node = parser[1]
+  else_body_list_node_right = parser[2]
+
+  else_body_list_node_left = create_node('else_body_list')
+  append_node_children(else_body_list_node_left, else_body_node)
+
+  if else_body_list_node_right is not None:
+    if 'children' in else_body_list_node_right:
+      for else_body in else_body_list_node_right['children']:
+        append_node_children(else_body_list_node_left, else_body)
+
+  parser[0] = else_body_list_node_left
+
+def p_else_body(parser):
+  'else_body : procedure'
+  procedure_node = parser[1]
+  else_body_node = create_node('else_body')
+  append_node_children(else_body_node, procedure_node)
+
+  parser[0] = else_body_node
 
 def p_empty(parser):
   'empty :'
@@ -291,5 +477,5 @@ import json
 if __name__ == "__main__":
   lexer = create_lexer()
   parser = yacc.yacc(start="program")
-  program = parser.parse("mauricio = 2 + 3 mauricio(arroz) TO mauricio :arroz mauricio(:arroz) END", lexer=lexer)
+  program = parser.parse("IF(3 == 4 AND NOT 3 == 4) THEN mauricio(arroz) ELSE mauricio(feijao) END", lexer=lexer)
   print(json.dumps(program, indent=4))
