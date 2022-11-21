@@ -330,29 +330,6 @@ def p_condition(parser):
             | NOT condition
        
   '''
-  # | condition_value AND condition_value
-  # | condition_value OR condition_value
-  # | condition AND condition
-  # | condition OR condition
-  # | condition AND condition_value
-  # | condition OR condition_value
-  # | condition_value AND condition
-  # | condition_value OR condition
-  # | NOT condition
-  # | NOT condition_value
-  # if len(parser) == 4:
-  #   condition_node_left = parser[1]
-  #   operator = parser[2]
-  #   operator_leaf = create_leaf('operator', value=operator)
-  #   condition_node_right = parser[3]
-
-  #   conditional_node = create_node('condition')
-  #   append_node_children(conditional_node, condition_node_left)
-  #   append_node_children(conditional_node, operator_leaf)
-  #   append_node_children(conditional_node, condition_node_right)
-    
-  #   parser[0] = conditional_node
-  #   return
 
   if len(parser) == 3:
     if parser[1] == "NOT":
@@ -377,15 +354,6 @@ def p_condition(parser):
             append_node_children(condition_node, condition_value_prime) 
 
       parser[0] = condition_node
-
-  # operator = parser[1]
-  # operator_leaf = create_leaf('operator', value=operator)
-  # condition_node_right = parser[2]
-
-  # condition_node_left = create_node('condition')
-  # append_node_children(condition_node_left, operator_leaf)
-  # append_node_children(condition_node_left, condition_node_right)
-  # parser[0] = condition_node_left
 
 def p_condition_group(parser):
   'condition : OPEN_PAREN condition CLOSE_PAREN'
@@ -511,9 +479,10 @@ def p_while(parser):
   if while_body_list_node is not None:
     if 'children' in while_body_list_node:
       for while_body in while_body_list_node['children']:
-        append_node_children(while_node, while_body)
+        append_node_children(while_body_list_node_new, while_body)
 
-  parser[0] = while_body_list_node_new
+  append_node_children(while_node, while_body_list_node_new)
+  parser[0] = while_node
 
 def p_while_body_list(parser):
   '''
@@ -575,5 +544,5 @@ import json
 if __name__ == "__main__":
   lexer = create_lexer()
   parser = yacc.yacc(start="program")
-  program = parser.parse("WHILE(3 == 4) mauricio(feijao) END", lexer=lexer)
+  program = parser.parse("IF(3 == 4) THEN mauricio(feijao) END", lexer=lexer)
   print(json.dumps(program, indent=4))

@@ -1,3 +1,15 @@
+reserved = {
+  'NOT': 'NOT',
+  'AND': 'AND',
+  'OR': 'OR',
+  'TO': 'TO',
+  'END': 'END',
+  'IF': 'IF',
+  'ELSE': 'ELSE',
+  'THEN': 'THEN',
+  'WHILE': 'WHILE'
+}
+
 tokens = [
   "NUMBER",
   "OPEN_PAREN",
@@ -14,18 +26,9 @@ tokens = [
   "LTE",
   "EQUALS",
   "NOT_EQUALS",
-  "NOT",
-  "AND",
-  "OR",
-  "TO",
-  "END",
-  "IF",
-  "ELSE",
-  "THEN",
-  "WHILE",
   "OPTIONAL_PARAMETER",
-  "IDENTIFIER",
-]
+  "IDENTIFIER"
+] + list(reserved.values())
 
 t_ignore = ' \t\r'
 t_OPEN_PAREN = r'\('
@@ -48,48 +51,13 @@ def t_NUMBER(token):
   token.value = float(token.value)
   return token
 
-def t_TO(token):
-  r'TO'
-  return token
-
-def t_END(token):
-  r'END'
-  return token
-
-def t_IF(token):
-  r'IF'
-  return token
-
-def t_ELSE(token):
-  r'ELSE'
-  return token
-
-def t_THEN(token):
-  r'THEN'
-  return token
-
-def t_WHILE(token):
-  r'WHILE'
-  return token
-
-def t_NOT(token):
-  r'NOT'
-  return token
-
-def t_AND(token):
-  r'AND'
-  return token
-
-def t_OR(token):
-  r'OR'
-  return token
-
 def t_OPTIONAL_PARAMETER(token):
   r'\:[_a-zA-Z][_a-zA-Z0-9]*'
   return token
 
 def t_IDENTIFIER(token):
   r'[_a-zA-Z][_a-zA-Z0-9]*'
+  token.type = reserved.get(token.value, 'IDENTIFIER')
   return token
 
 def t_newline(token):
