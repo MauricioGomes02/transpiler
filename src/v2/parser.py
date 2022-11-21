@@ -1,4 +1,5 @@
 from lexer import tokens
+from symbol_table import add_symbol, get_symbol
 
 precedence = (
   ('left', 'AND', 'OR'),
@@ -65,10 +66,16 @@ def p_statement(parser):
 def p_assign(parser):
   'assign : IDENTIFIER ASSIGN expression'
   identifier = parser[1]
+  symbol = get_symbol(identifier)
+  if symbol is not None:
+    raise Exception(f'The symbol has already been defined: {identifier}: {parser.lineno(1)}')
+  expression_node = parser[3]
+  add_symbol(identifier, 'VARIABLE', parser.lineno(1), value=expression_node)
+
   identifier_leaf = create_leaf('identifier', value=identifier)
   assign = parser[2]
   assign_leaf = create_leaf('operator', value=assign)
-  expression_node = parser[3]
+  
 
   assign_node = create_node('assign')
   append_node_children(assign_node, identifier_leaf)
@@ -131,12 +138,26 @@ def p_expression_identifier(parser):
   append_node_children(expression_node, identifier_leaf)
 
   parser[0] = expression_node
-
+################################################## - ##################################################
 def p_procedure(parser):
   'procedure : IDENTIFIER OPEN_PAREN parameter_list CLOSE_PAREN'
   identifier = parser[1]
-  identifier_leaf = create_leaf('identifier_procedure', value=identifier)
   parameters_node = parser[3]
+  symbol = get_symbol(identifier)
+  if symbol is None:
+    raise Exception(f'Undefined symbol: {identifier}: {parser.lineno(1)}')
+  if symbol['type'] != 'PROCEDURE':
+    raise Exception(f'The {identifier} identifier does not store a procedure: {parser.lineno(1)}')
+  if symbol['args'] is not None:
+    args_len = len(symbol['args'])
+    parameters_len = len(parameters_node['children']) if parameters_node is not None and 'children' in parameters_node else 0
+    if parameters_node is None or args_len != parameters_len:
+      raise Exception(f'Procedure {identifier} expects {args_len} arguments but received {parameters_len}')
+  elif parameters_node is not None:
+    parameters_len = len(parameters_node['children'])
+    raise Exception(f'Procedure {identifier} does not expect arguments, but received {parameters_len}')
+
+  identifier_leaf = create_leaf('identifier_procedure', value=identifier)
 
   procedure_node = create_node('procedure')
   append_node_children(procedure_node, identifier_leaf)
@@ -144,7 +165,7 @@ def p_procedure(parser):
     append_node_children(procedure_node, parameters_node)
 
   parser[0] = procedure_node
-
+################################################## - ##################################################
 def p_parameter_list(parser):
   '''
   parameter_list : parameter parameter_list
@@ -173,13 +194,13 @@ def p_parameter_expression(parser):
   parameter_leaf = create_leaf('parameter', value=expression_node)
   parser[0] = parameter_leaf
 
-def p_parameter_optional_argument(parser):
-  'parameter : optional_parameter'
-  optinal_parameter_leaf = parser[1]
-  parameter_node = create_node('paramter')
-  append_node_children(parameter_node, optinal_parameter_leaf)
+# def p_parameter_optional_argument(parser):
+#   'parameter : optional_parameter'
+#   optinal_parameter_leaf = parser[1]
+#   parameter_node = create_node('optional_parameter')
+#   append_node_children(parameter_node, optinal_parameter_leaf)
 
-  parser[0] = parameter_node
+#   parser[0] = parameter_node
 
 def p_statement_procedure(parser):
   'statement_procedure : TO IDENTIFIER optional_parameter_list procedure_body procedure_body_list END'
@@ -544,5 +565,5 @@ import json
 if __name__ == "__main__":
   lexer = create_lexer()
   parser = yacc.yacc(start="program")
-  program = parser.parse("IF(3 == 4) THEN mauricio(feijao) END", lexer=lexer)
+  program = parser.parse("FO(:id)", lexer=lexer)
   print(json.dumps(program, indent=4))
