@@ -22,6 +22,7 @@ tokens = [
   "IF",
   "ELSE",
   "THEN",
+  "WHILE",
   "OPTIONAL_PARAMETER",
   "IDENTIFIER",
 ]
@@ -65,6 +66,10 @@ def t_ELSE(token):
 
 def t_THEN(token):
   r'THEN'
+  return token
+
+def t_WHILE(token):
+  r'WHILE'
   return token
 
 def t_NOT(token):

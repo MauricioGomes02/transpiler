@@ -54,6 +54,7 @@ def p_statement(parser):
             | procedure
             | statement_procedure
             | if
+            | while
             
   '''
   operation_node = parser[1]
@@ -299,42 +300,92 @@ def p_if(parser):
 
   parser[0] = if_node
 
-def p_condition(parser):
+def p_condition_value_prime(parser):
+  '''condition_value_prime : AND condition_value condition_value_prime
+                           | OR condition_value condition_value_prime
+                           | empty
   '''
-  condition : 
-            | condition_value AND condition_value
-            | condition_value OR condition_value
-            | condition AND condition
-            | condition OR condition
-            | condition AND condition_value
-            | condition OR condition_value
-            | condition_value AND condition
-            | condition_value OR condition
-            | NOT condition
-            | NOT condition_value
-  '''
-  if len(parser) == 4:
-    condition_node_left = parser[1]
-    operator = parser[2]
-    operator_leaf = create_leaf('operator', value=operator)
-    condition_node_right = parser[3]
-
-    conditional_node = create_node('condition')
-    append_node_children(conditional_node, condition_node_left)
-    append_node_children(conditional_node, operator_leaf)
-    append_node_children(conditional_node, condition_node_right)
-    
-    parser[0] = conditional_node
+  if len(parser) == 2:
+    parser[0] = None
     return
 
   operator = parser[1]
   operator_leaf = create_leaf('operator', value=operator)
-  condition_node_right = parser[2]
+  condition_value_node = parser[2]
+  condition_value_prime_node = parser[3]
 
-  condition_node_left = create_node('condition')
-  append_node_children(condition_node_left, operator_leaf)
-  append_node_children(condition_node_left, condition_node_right)
-  parser[0] = condition_node_left
+  condition_value_prime_node_new = create_node('condition_value_prime')
+  append_node_children(condition_value_prime_node_new, operator_leaf)
+  append_node_children(condition_value_prime_node_new, condition_value_node)
+
+  if condition_value_node is not None:
+    append_node_children(condition_value_prime_node_new, condition_value_prime_node)
+
+  parser[0] = condition_value_prime_node_new
+
+def p_condition(parser):
+  '''
+  condition : 
+            | condition_value condition_value_prime
+            | NOT condition
+       
+  '''
+  # | condition_value AND condition_value
+  # | condition_value OR condition_value
+  # | condition AND condition
+  # | condition OR condition
+  # | condition AND condition_value
+  # | condition OR condition_value
+  # | condition_value AND condition
+  # | condition_value OR condition
+  # | NOT condition
+  # | NOT condition_value
+  # if len(parser) == 4:
+  #   condition_node_left = parser[1]
+  #   operator = parser[2]
+  #   operator_leaf = create_leaf('operator', value=operator)
+  #   condition_node_right = parser[3]
+
+  #   conditional_node = create_node('condition')
+  #   append_node_children(conditional_node, condition_node_left)
+  #   append_node_children(conditional_node, operator_leaf)
+  #   append_node_children(conditional_node, condition_node_right)
+    
+  #   parser[0] = conditional_node
+  #   return
+
+  if len(parser) == 3:
+    if parser[1] == "NOT":
+      operator = parser[1]
+      operator_leaf = create_leaf('operator', value=operator)
+
+      condition_node = parser[2]
+      condition_node_new = create_node('condition')
+      append_node_children(condition_node_new, operator_leaf)
+      append_node_children(condition_node_new, condition_node)
+
+      parser[0] = condition_node_new
+    else:
+      condition_value_node = parser[1]
+      condition_value_prime_node = parser[2]
+
+      condition_node = create_node('condition')
+      append_node_children(condition_node, condition_value_node)
+      if condition_value_prime_node is not None:
+        if 'children' in condition_value_prime_node:
+          for condition_value_prime in condition_value_prime_node['children']:
+            append_node_children(condition_node, condition_value_prime) 
+
+      parser[0] = condition_node
+
+  # operator = parser[1]
+  # operator_leaf = create_leaf('operator', value=operator)
+  # condition_node_right = parser[2]
+
+  # condition_node_left = create_node('condition')
+  # append_node_children(condition_node_left, operator_leaf)
+  # append_node_children(condition_node_left, condition_node_right)
+  # parser[0] = condition_node_left
 
 def p_condition_group(parser):
   'condition : OPEN_PAREN condition CLOSE_PAREN'
@@ -447,6 +498,53 @@ def p_else_body(parser):
 
   parser[0] = else_body_node
 
+def p_while(parser):
+  'while : WHILE OPEN_PAREN condition CLOSE_PAREN while_body while_body_list END'
+  while_node = create_node('while')
+
+  condition_node = parser[3]
+  append_node_children(while_node, condition_node)
+  while_body_node = parser[5]
+  while_body_list_node = parser[6]
+  while_body_list_node_new = create_node('while_body_list')
+  append_node_children(while_body_list_node_new, while_body_node)
+  if while_body_list_node is not None:
+    if 'children' in while_body_list_node:
+      for while_body in while_body_list_node['children']:
+        append_node_children(while_node, while_body)
+
+  parser[0] = while_body_list_node_new
+
+def p_while_body_list(parser):
+  '''
+  while_body_list : while_body while_body_list
+                  | empty
+  '''
+  if len(parser) == 2:
+    parser[0] = None
+    return
+
+  while_body_node = parser[1]
+  while_body_list_node_right = parser[2]
+
+  while_body_list_node_left = create_node('while_body_list')
+  append_node_children(while_body_list_node_left, while_body_node)
+
+  if while_body_list_node_right is not None:
+    if 'children' in while_body_list_node_right:
+      for while_body in while_body_list_node_right['children']:
+        append_node_children(while_body_list_node_left, while_body)
+
+  parser[0] = while_body_list_node_left
+
+def p_while_body(parser):
+  'while_body : procedure'
+  procedure_node = parser[1]
+  while_body_node = create_node('while_body')
+  append_node_children(while_body_node, procedure_node)
+
+  parser[0] = while_body_node
+  
 def p_empty(parser):
   'empty :'
   parser[0] = None
@@ -477,5 +575,5 @@ import json
 if __name__ == "__main__":
   lexer = create_lexer()
   parser = yacc.yacc(start="program")
-  program = parser.parse("IF(3 == 4 AND NOT 3 == 4) THEN mauricio(arroz) ELSE mauricio(feijao) END", lexer=lexer)
+  program = parser.parse("WHILE(3 == 4) mauricio(feijao) END", lexer=lexer)
   print(json.dumps(program, indent=4))
