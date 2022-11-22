@@ -70,8 +70,8 @@ def p_expression_identifier(parser):
   symbol = get_symbol(identifier)
   if symbol is None:
      raise Exception(f'Undefined symbol: {identifier}: {parser.lineno(1)}')
-  elif symbol['type'] != 'VARIBALE':
-    raise Exception(f'Cannot use non-variable identifiers in expressions: {identifier}: {parser.lineno(1)}')
+  elif symbol['type'] != 'VARIABLE' and symbol['type'] != 'BOOLEAN_VARIABLE':
+    raise Exception(f"Cannot use identifier that is different from 'variable' and 'boolean variable' types in expressions: {identifier}: {parser.lineno(1)}")
   identifier_leaf = create_leaf("identifier", value=identifier)
 
   parser[0] = create_node_with_one_children('expression_value', identifier_leaf)
@@ -112,19 +112,58 @@ def p_condition_group(parser):
 ################################################## - ##################################################
 def p_condition_value(parser):
   '''
-  condition_value : expression GT expression
-                  | expression LT expression
-                  | expression GTE expression
-                  | expression LTE expression
-                  | expression EQUALS expression
-                  | expression NOT_EQUALS expression
+  condition_value : expression condition_value_prime
   '''
-  expression_left = parser[1]
-  operator = parser[2]
+  expression = parser[1]
+  condition_value_prime = parser[2]
+
+  if condition_value_prime is None:
+      expression_childrens = get_childrens(expression)
+      if expression_childrens is None:
+        raise Exception('Expected a boolean type identifier')
+      first_children = expression_childrens[0]
+      if first_children['name'] != "expression_value":
+        raise Exception('Expected a boolean type identifier')
+      expression_value_childrens = get_childrens(first_children)
+      if expression_value_childrens is not None:
+        first_children = expression_value_childrens[0]
+        if first_children['name'] != 'identifier':
+          raise Exception('Expected a boolean type identifier')
+        else:
+          identifier = first_children['value']['value']
+          symbol = get_symbol(identifier)
+          if symbol is None:
+            raise Exception(f'Undefined symbol: {identifier}: {parser.lineno(1)}')
+          elif symbol['type'] != 'BOOLEAN_VARIBALE':
+            raise Exception(f'Cannot use identifiers that are not boolean variables in conditions: {identifier}: {parser.lineno(1)}')
+          identifier_leaf = create_leaf("identifier", value=identifier)
+          
+          parser[0] = create_node_with_one_children('condition_value', identifier_leaf)
+          return
+  else:
+    childrens = [expression, condition_value_prime]
+    parser[0] = create_node_with_childrens('condition_value', childrens)
+################################################## - ##################################################
+def p_condition_value_prime(parser):
+  '''
+  condition_value_prime : GT expression
+                        | LT expression
+                        | GTE expression
+                        | LTE expression
+                        | EQUALS expression
+                        | NOT_EQUALS expression
+                        | empty
+  '''
+  if len(parser) == 2:
+    parser[0] = None
+    return
+  
+  operator = parser[1]
   operator_leaf = create_leaf('operator', value=operator)
-  expression_right = parser[3]
-  childrens = [expression_left, operator_leaf, expression_right]
-  parser[0] = create_node_with_childrens('condition_value', childrens)
+  expression = parser[2]
+
+  childrens = [operator_leaf, expression]
+  parser[0] = create_node_with_childrens('condition_value_prime', childrens)
 ################################################## - ##################################################
 def p_condition_prime(parser):
   '''
@@ -162,7 +201,8 @@ def p_body_statement(parser):
   '''
   body_statement : assign
                  | procedure   
-                 | if         
+                 | if
+                 | while   
   '''
   body = parser[1]
   parser[0] = create_node_with_one_children('body_statement', body)
@@ -173,6 +213,13 @@ def p_body_statements(parser):
                   | empty                
   '''
   create_list_node(parser, 'body_statements')
+################################################## - ##################################################
+def p_boolean_expression(parser):
+  '''
+  boolean_expression : condition              
+  '''
+  condition = parser[1]
+  parser[0] = create_node_with_one_children('boolean_expression', condition)
 ################################################## - ##################################################
 def p_empty(parser):
   'empty :'
@@ -233,25 +280,3 @@ def append_node_children(node, new_node):
 ################################################## - ##################################################
 def create_leaf(name, **kwargs):
   return dict(name=name, value=kwargs)
-
-# Lógica booleana (tentativa)
-def bool(c):
-    global symbol_table
-    if type(c) != tuple:
-        return c
-    else:
-        op = c[0]
-        num1 = c[1]
-        num2 = c[2]
-        if op == '>':
-            return num1 > num2
-        elif op == '<':
-            return num1 < num2
-        elif op == '>=':
-            return num1 >= num2
-        elif op == '<=':
-            return num1 <= num2
-        elif op == '=':
-            return num1 == num2
-        elif op == '!=':
-            return num1 != num2
