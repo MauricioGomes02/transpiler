@@ -233,3 +233,25 @@ def append_node_children(node, new_node):
 ################################################## - ##################################################
 def create_leaf(name, **kwargs):
   return dict(name=name, value=kwargs)
+
+# Lógica booleana (tentativa)
+def bool(c):
+    global symbol_table
+    if type(c) != tuple:
+        return c
+    else:
+        op = c[0]
+        num1 = c[1]
+        num2 = c[2]
+        if op == '>':
+            return num1 > num2
+        elif op == '<':
+            return num1 < num2
+        elif op == '>=':
+            return num1 >= num2
+        elif op == '<=':
+            return num1 <= num2
+        elif op == '=':
+            return num1 == num2
+        elif op == '!=':
+            return num1 != num2
