@@ -1,6 +1,6 @@
 from lexer import create_lexer, tokens
 from ply import yacc
-from symbol_table import add_symbol, get_symbol, get_symbol_table
+from symbol_table import add_symbol, get_symbol
 from assign import p_assign_expression, p_assign_boolean_expression
 from procedure import p_procedure, p_procedure_statement
 from if_statement import p_if, p_else
@@ -54,5 +54,4 @@ if __name__ == "__main__":
   lexer = create_lexer()
   parser = yacc.yacc(start="program")
   program = parser.parse("a = 14 == 3 b = a", lexer=lexer)
-  print(json.dumps(get_symbol_table(), indent=4))
   print(json.dumps(program, indent=4))

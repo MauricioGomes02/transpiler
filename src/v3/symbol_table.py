@@ -46,11 +46,6 @@ def set_symbol(symbol, **kwargs):
         raise InternalError(f"Cannot modify symbol {symbol} attribute 'line'.")
     obj.update(kwargs)
 
-
-def get_symbol(symbol):
-    """Retrieve symbol from symbol table."""
-    return __symtable.get(symbol)
-
 add_symbol('FO', 'PROCEDURE', None, value=None, parameters=["num"])
 add_symbol('FORWARD', 'PROCEDURE', None, value=None, parameters=["num"])
 add_symbol('BK', 'PROCEDURE', None, value=None, parameters=["num"])
