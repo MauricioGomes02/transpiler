@@ -2,7 +2,7 @@ from lexer import tokens
 from common import *
 
 def p_while(parser):
-  'while : WHILE OPEN_PAREN condition CLOSE_PAREN body END'
+  'while : WHILE OPEN_PAREN boolean_expression CLOSE_PAREN body END'
   condition = parser[3]
   body = parser[5]
 

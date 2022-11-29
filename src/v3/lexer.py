@@ -26,7 +26,7 @@ tokens = [
   "LTE",
   "EQUALS",
   "NOT_EQUALS",
-  "OPTIONAL_PARAMETER",
+  "VARIABLE",
   "IDENTIFIER"
 ] + list(reserved.values())
 
@@ -51,7 +51,7 @@ def t_NUMBER(token):
   token.value = float(token.value)
   return token
 
-def t_OPTIONAL_PARAMETER(token):
+def t_VARIABLE(token):
   r'\:[_a-zA-Z][_a-zA-Z0-9]*'
   return token
 

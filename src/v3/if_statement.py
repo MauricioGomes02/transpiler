@@ -2,7 +2,7 @@ from lexer import tokens
 from common import *
 
 def p_if(parser):
-  'if : IF OPEN_PAREN condition CLOSE_PAREN THEN body else END'
+  'if : IF OPEN_PAREN boolean_expression CLOSE_PAREN THEN body else END'
   condition = parser[3]
   body = parser[6]
   _else = parser[7]

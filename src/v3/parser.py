@@ -1,8 +1,8 @@
 from lexer import create_lexer, tokens
 from ply import yacc
 from symbol_table import add_symbol, get_symbol
-from assign import p_assign_expression, p_assign_boolean_expression
-from procedure import p_procedure, p_procedure_statement
+from assign import p_assign
+from procedure import p_procedure, p_procedure_declaration
 from if_statement import p_if, p_else
 from while_statement import p_while
 from common import *
@@ -13,32 +13,36 @@ precedence = (
   ('left', 'AND', 'OR'),
   ('left', 'NOT'),
   ('left', 'EQUALS', 'NOT_EQUALS'),
-  ('left', 'GT', 'LT', 'GTE', 'LTE'),
+  ('nonassoc', 'GT', 'LT', 'GTE', 'LTE'),
   ('left', 'PLUS', 'MINUS'),
   ('left', 'TIMES', 'DIVIDE'),
-  ('right', 'POWER')
+  ('right', 'POWER'),
+  ('right', 'UMINUS')
 )
 
 def p_program(parser):
   'program : statement statements'
   statement = parser[1]
   statements = parser[2]
-  statements_childrens = get_childrens(statements)
-  if statements_childrens is not None:
-    childrens = [statement]
-    for statements_children in statements_childrens:
-      childrens.append(statements_children)
-    parser[0] = create_node_with_childrens('program', childrens)
-  else:
-    parser[0] = create_node_with_one_children('program', statement)
+  elements = create_node_with_one_children('statements', statement)
+
+  if statements is None:
+    parser[0] = create_node_with_one_children('program', elements)
+    return
+
+
+  for body in get_childrens(statements):
+    elements.append(body)
+
+  parser[0] = create_node_with_childrens('program', elements)
 
 def p_statement(parser):
   '''
   statement : assign
-            | procedure
-            | procedure_statement
             | if
             | while
+            | procedure
+            | procedure_declaration
   '''
   element = parser[1]
   parser[0] = create_node_with_one_children('statement', element)
@@ -53,5 +57,5 @@ def p_statements(parser):
 if __name__ == "__main__":
   lexer = create_lexer()
   parser = yacc.yacc(start="program")
-  program = parser.parse("a = 14 == 3 b = a", lexer=lexer)
+  program = parser.parse("TO mauricio :age FO :age END", lexer=lexer)
   print(json.dumps(program, indent=4))
