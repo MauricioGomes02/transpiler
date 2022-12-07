@@ -1,24 +1,29 @@
 from lexer import tokens
 from symbol_table import add_symbol, get_symbol
 from common import *
+from identifier import Identifier
+
 
 def p_assign(parser):
-  'assign : IDENTIFIER ASSIGN expression'
-  identifier = parser[1]
-  line = parser.lineno(1)
-  expression = parser[3]
+    'assign : IDENTIFIER ASSIGN expression'
+    identifier = parser[1]
+    line = parser.lineno(1)
+    expression = parser[3]
 
-  if identifier_exists(identifier):
-    raise Exception(f'The symbol has already been defined: {identifier}: {line}')
-  else:
-    variable_type = get_variable_type(expression)
-    add_symbol(identifier, variable_type, line, value=expression)
+    # if identifier_exists(identifier):
+    #     raise Exception(f'The symbol has already been defined: {identifier}: {line}')
+    # else:
+    #     variable_type = get_variable_type(expression)
+    #     add_symbol(identifier, variable_type, line, value=expression)
 
-  identifier_leaf = create_leaf('identifier', vaue=identifier)
-  operator = parser[2]
-  operator_leaf = create_leaf('operator', value=operator)
-  childrens = [identifier_leaf, operator_leaf, expression]
-  parser[0] = create_node_with_childrens('assign', childrens)
+    # identifier_leaf = create_leaf('identifier', value=identifier)
+    # operator = parser[2]
+    # operator_leaf = create_leaf('operator', value=operator)
+    # childrens = [identifier_leaf, operator_leaf, expression]
+    # parser[0] = create_node_with_childrens('assign', childrens)
+    identifier_leaf = Identifier(identifier)
+    node = Assign(identifier_leaf, expression)
+    parser[0] = node
 
 # def p_assign_expression(parser):
 #   'assign : IDENTIFIER ASSIGN expression'
@@ -61,3 +66,9 @@ def p_assign(parser):
 #   symbol = get_symbol(identifier)
 #   if symbol is not None:
 #     raise Exception(f'The symbol has already been defined: {identifier}: {line}')
+
+
+class Assign:
+    def __init__(self, identifier, value):
+        self.identifier = identifier
+        self.value = value
