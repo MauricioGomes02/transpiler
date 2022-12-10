@@ -44,14 +44,17 @@ class BooleanOperation:
             boolean_operation_code.append('\n\t')
             boolean_operation_code.append(f'JP {true_label}')
 
+        continue_label = common.create_label()
         boolean_operation_code.append('\n')
         boolean_operation_code.append(true_label)
         boolean_operation_code.append('\n\t')
         boolean_operation_code.append('PUSH 1')
+        boolean_operation_code.append('\n\t')
+        boolean_operation_code.append(f'JP {continue_label}')
         boolean_operation_code.append('\n')
         boolean_operation_code.append(false_label)
         boolean_operation_code.append('\n\t')
         boolean_operation_code.append('PUSH 0')
-        boolean_operation_code.append(f'\n{common.create_label()}')
+        boolean_operation_code.append(f'\n{continue_label}')
 
         return boolean_operation_code

@@ -246,11 +246,15 @@ def p_statements(parser):
 if __name__ == "__main__":
     lexer = create_lexer()
     parser = yacc.yacc(start="program")
-    file = "count = 5"
+    file = "IF (5 == 5)"
     file = file + "\n"
-    file = file + "WHILE (:count > 0)"
+    file = file + "THEN"
     file = file + "\n"
-    file = file + "count = :count - 1"
+    file = file + "count = 1"
+    file = file + "\n"
+    file = file + "ELSE"
+    file = file + "\n"
+    file = file + "count = 5"
     file = file + "\n"
     file = file + "END"
     program = parser.parse(file, lexer=lexer)
