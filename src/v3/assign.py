@@ -19,14 +19,14 @@ def p_assign(parser):
             variable_symbol = get_symbol(expression.value)
             if _type != variable_symbol['type']:
                 raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
-        elif type(expression) is BooleanOperation or RelationalOperation:
+        elif type(expression) is BooleanOperation :
             if _type != "BOOLEAN_VARIABLE":
                 raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
         elif type(expression) is String:
             if _type != "STRING_VARIBALE":
                 raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
-    
-    add_symbol(identifier, get_expression_type(expression), parser.lineno(1))
+    else:
+        add_symbol(identifier, get_expression_type(expression), parser.lineno(1))
 
     identifier_leaf = Identifier(identifier)
     node = Assign(identifier_leaf, expression)
@@ -104,10 +104,11 @@ class Assign:
         self.value = value
 
     def generate_code(self):
-        assign_code = ['\n\t']
+        assign_code = []
         assign_code.extend(self.value.generate_code())
-        assign_code.append('\n')
-        assign_code.append(create_label())
+        # if type(self.value) is BooleanOperation or type(self.value) is RelationalOperation:
+        #     assign_code.append('\n')
+        #     assign_code.append(create_label())
         assign_code.append('\n\t')
         assign_code.append(f'STORE {self.identifier.generate_code()}')
         return assign_code

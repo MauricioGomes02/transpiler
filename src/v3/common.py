@@ -7,6 +7,7 @@ from variable import Variable
 from condition_prime import ConditionPrime
 from relational_operation import RelationalOperation
 from string_token import String
+from body import Body
 import uuid
 
 def p_expression(parser):
@@ -45,7 +46,7 @@ def p_number_expression(parser):
         symbol = get_symbol(left.value)
         if symbol is None:
             raise Exception(f'Undefined symbol: \'{left.value}\': {parser.lineno(1)}')
-        elif symbol['type'] != 'NUMBER_VARIBALE':
+        elif symbol['type'] != 'NUMBER_VARIABLE':
             raise Exception(f'Symbol: \'{left.value}\' should be NUMBER_VARIABLE type: {parser.lineno(1)}')
 
     operator = parser[2]
@@ -157,6 +158,7 @@ def p_condition(parser):
 
     condition_prime = parser[2]
     if condition_prime is not None:
+        print(condition_prime.operator)
         node = RelationalOperation(condition_prime.operator, first_element, condition_prime.value)
         parser[0] = node
         return
@@ -255,16 +257,25 @@ def p_body(parser):
     '''
     body_statement = parser[1]
     body_statements = parser[2]
-    elements = create_node_with_one_children('body_statements', body_statement)
 
-    if body_statements is None:
-        parser[0] = create_node_with_one_children('body', elements)
+    if body_statements is not None:
+        body_statements.append(body_statement)
+        node = Body(body_statements)
+        parser[0] = node
         return
 
-    for body in get_childrens(body_statements):
-        elements.append(body)
+    node = Body([body_statement])
+    parser[0] = node
+    # elements = create_node_with_one_children('body_statements', body_statement)
 
-    parser[0] = create_node_with_childrens('body', elements)
+    # if body_statements is None:
+    #     parser[0] = create_node_with_one_children('body', elements)
+    #     return
+
+    # for body in get_childrens(body_statements):
+    #     elements.append(body)
+
+    # parser[0] = create_node_with_childrens('body', elements)
 
 
 def p_body_statement(parser):
@@ -276,15 +287,28 @@ def p_body_statement(parser):
                    | procedure_declaration
     '''
     statement = parser[1]
-    parser[0] = create_node_with_one_children('body_statement', statement)
+    # parser[0] = create_node_with_one_children('body_statement', statement)
+    parser[0] = statement
 
 
 def p_body_statements(parser):
     '''
     body_statements : body_statement body_statements
-                      | empty
+                    | empty
     '''
-    parser[0] = create_list_node(parser, 'body_statements')
+    if len(parser) == 2:
+        return None
+    
+    body_statement = parser[1]
+    body_statements = parser[2]
+
+    if body_statements is not None:
+        body_statements.append(body_statement)
+        parser[0] = body_statements
+        return
+    
+    parser[0] = [body_statement]
+    # parser[0] = create_list_node(parser, 'body_statements')
 
 # def p_parameters(parser):
 #   '''

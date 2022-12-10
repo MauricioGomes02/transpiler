@@ -12,7 +12,8 @@ class BinaryOperation:
     left_expression_code = self.left.generate_code()
     right_expression_code = self.right.generate_code()
 
-    binary_code = [common.create_label()]
+    # binary_code = [f'\n{common.create_label()}']
+    binary_code = []
     binary_code.extend(left_expression_code)
     binary_code.append('\n\t')
     binary_code.extend(right_expression_code)

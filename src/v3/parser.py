@@ -33,6 +33,8 @@ def generate_code(statements):
     for command in program:
         program_string = program_string + command
 
+    program_string = program_string + '\n\tHALT'
+
     return program_string
 
 
@@ -244,5 +246,12 @@ def p_statements(parser):
 if __name__ == "__main__":
     lexer = create_lexer()
     parser = yacc.yacc(start="program")
-    program = parser.parse("a = \"OI\" b = 3 + :a", lexer=lexer)
+    file = "count = 5"
+    file = file + "\n"
+    file = file + "WHILE (:count > 0)"
+    file = file + "\n"
+    file = file + "count = :count - 1"
+    file = file + "\n"
+    file = file + "END"
+    program = parser.parse(file, lexer=lexer)
     # print(json.dumps(program, default=lambda o: o.__dict__, indent=4))
