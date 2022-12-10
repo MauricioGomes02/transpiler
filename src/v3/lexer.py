@@ -12,6 +12,7 @@ reserved = {
 
 tokens = [
   "NUMBER",
+  "STRING",
   "OPEN_PAREN",
   "CLOSE_PAREN",
   "PLUS",
@@ -45,6 +46,7 @@ t_GTE = r'\>='
 t_LTE = r'\<='
 t_EQUALS = '=='
 t_NOT_EQUALS = r'\<\>'
+t_STRING = r'\".*\"'
 
 def t_NUMBER(token):
   r'[+-]?\d+([.]\d*)?'

@@ -1,20 +1,29 @@
 from symbol_table import get_symbol
 from binary_operation import BinaryOperation
+from boolean_operation import BooleanOperation
 from unary_operation import UnaryOperation
 from number import Number
 from variable import Variable
-
+from condition_prime import ConditionPrime
+from relational_operation import RelationalOperation
+from string_token import String
+import uuid
 
 def p_expression(parser):
     '''expression : number_expression
                   | boolean_expression
+                  | STRING
     '''
     # expression = parser[1]
     # parser[0] = create_node_with_one_children('expression', expression)
 
     expression = parser[1]
-    parser[0] = expression
 
+    if type(expression) is str:
+        parser[0] = String(expression)
+        return
+
+    parser[0] = expression
 
 def p_number_expression(parser):
     '''
@@ -32,8 +41,23 @@ def p_number_expression(parser):
     # childrens = [expression_left, operator_leaf, expression_right]
     # parser[0] = create_node_with_childrens('number_expression', childrens)
     left = parser[1]
+    if type(left) is Variable:
+        symbol = get_symbol(left.value)
+        if symbol is None:
+            raise Exception(f'Undefined symbol: \'{left.value}\': {parser.lineno(1)}')
+        elif symbol['type'] != 'NUMBER_VARIBALE':
+            raise Exception(f'Symbol: \'{left.value}\' should be NUMBER_VARIABLE type: {parser.lineno(1)}')
+
     operator = parser[2]
+
     right = parser[3]
+    if type(right) is Variable:
+        symbol = get_symbol(right.value)
+        if symbol is None:
+            raise Exception(f'Undefined symbol: \'{right.value}\': {parser.lineno(3)}')
+        elif symbol['type'] != 'NUMBER_VARIBALE':
+            raise Exception(f'Symbol: \'{right.value}\' should be NUMBER_VARIABLE type: {parser.lineno(3)}')
+
     node = BinaryOperation(operator, left, right)
     parser[0] = node
 
@@ -61,6 +85,14 @@ def p_number_expression_minus(parser):
     # parser[0] = create_node_with_childrens('number_expression', childrens)
     operator = parser[1]
     expression = parser[2]
+
+    if type(expression) is Variable:
+        symbol = get_symbol(expression.value)
+        if symbol is None:
+            raise Exception(f'Undefined symbol: {expression.value}: {parser.lineno(2)}')
+        elif symbol['type'] != 'NUMBER_VARIBALE':
+            raise Exception(f'Symbol: {expression.value} should be NUMBER_VARIABLE type: {parser.lineno(2)}')
+
     node = UnaryOperation(operator, expression)
 
     parser[0] = node
@@ -94,16 +126,19 @@ def p_number_expression_identifier(parser):
 def p_boolean_expression(parser):
     'boolean_expression : condition'
     condition = parser[1]
-    parser[0] = create_node_with_one_children('boolean_expression', condition)
+    # parser[0] = create_node_with_one_children('boolean_expression', condition)
+    parser[0] = condition
 
 
 def p_boolean_expression_identifier(parser):
     'boolean_expression : VARIABLE'
     variable = parser[1]
     identifier = variable[1:]
-    identifier_leaf = create_leaf('identifier', value=identifier)
+    # identifier_leaf = create_leaf('identifier', value=identifier)
 
-    parser[0] = create_node_with_one_children('variable_expression', identifier_leaf)
+    # parser[0] = create_node_with_one_children('variable_expression', identifier_leaf)
+    node = Variable(variable, identifier)
+    parser[0] = node
 
 
 def p_condition(parser):
@@ -122,14 +157,18 @@ def p_condition(parser):
 
     condition_prime = parser[2]
     if condition_prime is not None:
-        condition = [first_element]
-        for condition_value in get_childrens(condition_prime):
-            condition.append(condition_value)
-
-        parser[0] = create_node_with_childrens('condition', condition)
+        node = RelationalOperation(condition_prime.operator, first_element, condition_prime.value)
+        parser[0] = node
         return
+    parser[0] = first_element
+    #     condition = [first_element]
+    #     for condition_value in get_childrens(condition_prime):
+    #         condition.append(condition_value)
 
-    parser[0] = create_node_with_one_children('condition', first_element)
+    #     parser[0] = create_node_with_childrens('condition', condition)
+    #     return
+
+    # parser[0] = create_node_with_one_children('condition', first_element)
 
 
 def p_condition_group(parser):
@@ -149,10 +188,14 @@ def p_condition_prime(parser):
         return
 
     operator = parser[1]
-    operator_leaf = create_leaf('operator', value=operator)
     condition_value = parser[2]
-    childrens = [operator_leaf, condition_value]
-    parser[0] = create_node_with_childrens('condition_prime', childrens)
+    node = ConditionPrime(operator, condition_value)
+    parser[0] = node
+
+    # operator_leaf = create_leaf('operator', value=operator)
+    # condition_value = parser[2]
+    # childrens = [operator_leaf, condition_value]
+    # parser[0] = create_node_with_childrens('condition_prime', childrens)
 
 
 def p_condition_value(parser):
@@ -166,10 +209,15 @@ def p_condition_value(parser):
     '''
     number_expression_left = parser[1]
     operator = parser[2]
-    operator_leaf = create_leaf('operator', value=operator)
     number_expression_right = parser[3]
-    childrens = [number_expression_left, operator_leaf, number_expression_right]
-    parser[0] = create_node_with_childrens('condition_value', childrens)
+
+    node = BooleanOperation(operator, number_expression_left, number_expression_right)
+    parser[0] = node
+
+    # operator_leaf = create_leaf('operator', value=operator)
+    # number_expression_right = parser[3]
+    # childrens = [number_expression_left, operator_leaf, number_expression_right]
+    # parser[0] = create_node_with_childrens('condition_value', childrens)
 
 
 def p_optional_arguments(parser):
@@ -620,3 +668,6 @@ def get_optional_parameters_from_procedure(identifier):
             raise Exception("Expected a 'PROCEDURE' type identifier")
         else:
             return symbol['optional_parameters']
+
+def create_label():
+    return f':@temp_identifier_{uuid.uuid4()}'
