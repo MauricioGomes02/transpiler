@@ -1,5 +1,6 @@
 from lexer import tokens
 from symbol_table import add_symbol, get_symbol
+from identifier import Identifier
 from common import *
 
 def p_procedure(parser):
@@ -28,28 +29,57 @@ def p_procedure(parser):
 def p_procedure_declaration(parser):
   'procedure_declaration : TO IDENTIFIER optional_parameters body END'
   identifier = parser[2]
-  identifier_leaf = create_leaf("identifier", value=identifier)
-  childrens = [identifier_leaf]
-  line = parser.lineno(2)
-  if identifier_exists(identifier):
-    raise Exception(f'The symbol has already been defined: {identifier}: {line}')
-  else:
-    optional_parameters = parser[3]
-    if optional_parameters is None:
-      add_symbol(identifier, 'PROCEDURE', line, value=None, optional_parameters=None)
-    else:
-      parameters = []
-      for parameter in get_childrens(optional_parameters):
-        vaiable_name = get_leaf_value(get_childrens(parameter)[0])
-        parameters.append(f'{identifier}.{vaiable_name[1:]}')
-      add_symbol(identifier, 'PROCEDURE', line, value=None, optional_parameters=parameters)
-      print(get_symbol(identifier))
-      childrens.append(optional_parameters)
-
+  optional_parameters = parser[3]
   body = parser[4]
-  childrens.append(body)
+
+  node = ProcedureDeclaration(Identifier(identifier), optional_parameters, body)
+  parser[0] = node
+
+class ProcedureDeclaration:
+  def __init__(self, identifier, optional_parameters, body):
+    self.identifier = identifier
+    self.optional_parameters = optional_parameters
+    self.body = body
+
+  def generate_code(self):
+    procedure_declaration_code = ['\n']
+    procedure_declaration_code.append(f'DEF {self.identifier.generate_code()}:')
+    
+    if self.optional_parameters is not None:
+      for optional_parameter in self.optional_parameters:
+        procedure_declaration_code.append('\n\t')
+        optional_parameter_code = optional_parameter.generate_code()
+        procedure_declaration_code.append(f'STOR {optional_parameter_code}')
+
+    body_code = self.body.generate_code()
+    procedure_declaration_code.append('\n\t')
+    procedure_declaration_code.extend(body_code)
+
+    return procedure_declaration_code
+
+  # identifier = parser[2]
+  # identifier_leaf = create_leaf("identifier", value=identifier)
+  # childrens = [identifier_leaf]
+  # line = parser.lineno(2)
+  # if identifier_exists(identifier):
+  #   raise Exception(f'The symbol has already been defined: {identifier}: {line}')
+  # else:
+  #   optional_parameters = parser[3]
+  #   if optional_parameters is None:
+  #     add_symbol(identifier, 'PROCEDURE', line, value=None, optional_parameters=None)
+  #   else:
+  #     parameters = []
+  #     for parameter in get_childrens(optional_parameters):
+  #       vaiable_name = get_leaf_value(get_childrens(parameter)[0])
+  #       parameters.append(f'{identifier}.{vaiable_name[1:]}')
+  #     add_symbol(identifier, 'PROCEDURE', line, value=None, optional_parameters=parameters)
+  #     print(get_symbol(identifier))
+  #     childrens.append(optional_parameters)
+
+  # body = parser[4]
+  # childrens.append(body)
   
-  parser[0] = create_node_with_childrens('procedure_declaration', childrens)
+  # parser[0] = create_node_with_childrens('procedure_declaration', childrens)
 
 # def p_procedure(parser):
 #   'procedure : IDENTIFIER OPEN_PAREN parameters CLOSE_PAREN'

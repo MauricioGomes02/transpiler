@@ -1,5 +1,5 @@
 class Variable:
-    def __init__(self, template, value):
+    def __init__(self, template, value, is_procedure = False):
         self.template = template
         self.value = value
 

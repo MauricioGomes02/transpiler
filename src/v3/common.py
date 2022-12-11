@@ -8,6 +8,7 @@ from condition_prime import ConditionPrime
 from relational_operation import RelationalOperation
 from string_token import String
 from body import Body
+from identifier import Identifier
 import uuid
 
 def p_expression(parser):
@@ -227,13 +228,26 @@ def p_optional_arguments(parser):
     optional_arguments : optional_argument optional_arguments
                        | empty
     '''
-    parser[0] = create_list_node(parser, 'optional_arguments')
+    if len(parser) == 2:
+        return None
+    
+    optional_argument = parser[1]
+    optional_arguments = parser[2]
+
+    if optional_arguments is not None:
+        optional_arguments.append(optional_argument)
+        parser[0] = optional_arguments
+        return
+    
+    parser[0] = [optional_argument]
+    # parser[0] = create_list_node(parser, 'optional_arguments')
 
 
 def p_optional_argument(parser):
     'optional_argument : expression'
     expression = parser[1]
-    parser[0] = create_node_with_one_children('optional_argument', expression)
+    parser[0] = expression
+    # parser[0] = create_node_with_one_children('optional_argument', expression)
 
 
 def p_optional_parameters(parser):
@@ -241,14 +255,28 @@ def p_optional_parameters(parser):
     optional_parameters : optional_parameter optional_parameters
                         | empty
     '''
-    parser[0] = create_list_node(parser, 'optional_parameters')
+    if len(parser) == 2:
+        return None
+    
+    optional_parameter = parser[1]
+    optional_parameters = parser[2]
+
+    if optional_parameters is not None:
+        optional_parameters.append(optional_parameter)
+        parser[0] = optional_parameters
+        return
+    
+    parser[0] = [optional_parameter]
+    # parser[0] = create_list_node(parser, 'optional_parameters')
 
 
 def p_optional_parameter(parser):
     'optional_parameter : VARIABLE'
-    variable = parser[1]
-    variable_leaf = create_leaf('variable', value=variable)
-    parser[0] = create_node_with_one_children('optional_parameter', variable_leaf)
+    optional_parameter = parser[1]
+    parser[0] = Identifier(optional_parameter[1:])
+    # variable = parser[1]
+    # variable_leaf = create_leaf('variable', value=variable)
+    # parser[0] = create_node_with_one_children('optional_parameter', variable_leaf)
 
 
 def p_body(parser):

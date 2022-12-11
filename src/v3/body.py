@@ -4,7 +4,7 @@ class Body:
 
   def generate_code(self):
     body_code = []
-    for body in self.body_statements:
+    for body in reversed(self.body_statements):
       body_code.extend(body.generate_code())
     
     return body_code
