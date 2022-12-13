@@ -1,8 +1,8 @@
 from lexer import create_lexer, tokens
 from ply import yacc
-from symbol_table import add_symbol, get_symbol
+from symbol_table import symbol_table, ARGUMENT, Symbol, PROCEDURE, NUMBER_VARIABLE, BOOLEAN_VARIABLE, STRING_VARIABLE
 from assign import p_assign, Assign
-from procedure import p_procedure, p_procedure_declaration
+from procedure import p_procedure, p_procedure_declaration, ProcedureDeclaration, Procedure
 from if_statement import p_if, p_else
 from while_statement import p_while
 from common import *
@@ -25,18 +25,133 @@ precedence = (
 
 def generate_code(statements):
     program = []
+    program.append('.START __main__')
+
+    _data = ['.DATA']
+
+    _code = ['.CODE']
+    _main = ['DEF __main__:']
+    _procedures = []
+
+    fo_symbol = symbol_table.get_symbol('FO')
+    _procedures.append('\n\n')
+    _procedures.append('DEF FO:')
+    _procedures.append('\n\t')
+    fo_parameters = fo_symbol.optional_parameters
+    for fo_parameter in fo_parameters:
+        _procedures.append(f'STORE {fo_parameter}')
+        
     for statement in statements:
-        program.extend(statement.generate_code())
+        scope = symbol_table
+        if type(statement) is Assign:
+            statement.validate_symbols(scope)
+
+            _main.append('\n\t')
+
+            expression = statement.value
+            expression_type = None
+            if type(expression) is Number or type(expression) is BinaryOperation:
+                expression_type = NUMBER_VARIABLE
+            elif type(expression) is Variable:
+                expression_symbol = symbol_table.get_symbol(expression.value)
+                expression_type = expression_symbol.type
+            elif type(expression) is BooleanOperation or type(expression) is RelationalOperation:
+                expression_type = BOOLEAN_VARIABLE
+            elif type(expression) == String:
+                expression_type = STRING_VARIABLE
+            symbol_table.add_symbol(Symbol(
+                statement.identifier.value,
+                expression_type,
+                None,
+                None,
+                statement.identifier.line
+            ))
+
+        if type(statement) is ProcedureDeclaration:
+            statement.scope.add_parent(symbol_table)
+            symbol_table.add_children(statement.scope)
+
+            parameter_names = []
+            if statement.optional_parameters is not None:
+                for parameter in reversed(statement.optional_parameters):
+                    parameter_names.append(f'{statement.scope.identifier}_{parameter.value}')
+
+            symbol_table.add_symbol(Symbol(
+                statement.identifier.value,
+                PROCEDURE,
+                None,
+                parameter_names,
+                statement.identifier.line
+            ))
+
+            body = statement.body
+
+            for body_statement in body.body_statements:
+                if type(body_statement) is Assign:
+                    expression = body_statement.value
+                    expression_type = None
+                    if type(expression) is Number or type(expression) is BinaryOperation:
+                        expression_type = NUMBER_VARIABLE
+                    elif type(expression) is Variable:
+                        expression_symbol = statement.scope.get_symbol(expression.value)
+                        _local_scope = statement.scope.get_parent()
+                        while expression_symbol is None and _local_scope is not None:
+                            expression_symbol = _local_scope.get_symbol(expression.value)
+                            _local_scope = _local_scope.get_parent()
+                        expression_type = expression_symbol.type
+                    elif type(expression) is BooleanOperation or type(expression) is RelationalOperation:
+                        expression_type = BOOLEAN_VARIABLE
+                    elif type(expression) == String:
+                        expression_type = STRING_VARIABLE
+                    statement.scope.add_symbol(Symbol(
+                        body_statement.identifier.value,
+                        expression_type,
+                        None,
+                        None,
+                        body_statement.identifier.line
+                    ))
+            _procedures.append('\n\n')
+            _procedures.extend(statement.generate_code(statement.scope))
+            continue
+        
+        # if type(statement) is Procedure:
+
+
+        _main.extend(statement.generate_code(scope))
+
+    _main.append('\n\tHALT')
+
+    add_variables_in_data(symbol_table, _data)
+
+    program.append('\n\n')
+    program.extend(_data)
+    program.append('\n\n')
+    program.extend(_code)
+    program.append('\n\n')
+    program.extend(_main)
+    program.extend(_procedures)
 
     program_string = ''
 
     for command in program:
         program_string = program_string + command
 
-    program_string = program_string + '\n\tHALT'
-
     return program_string
 
+def add_variables_in_data(obj, data, identifiers = []):
+    if obj is None or obj.identifier in identifiers:
+        return
+
+    identifiers.append(obj.identifier)
+
+    values = obj.symbols.values()
+    for value in values:
+        if value.type is not PROCEDURE:
+            data.append(f'\n\t{value.name}')
+
+    childrens = obj.get_childrens()
+    for children in childrens:
+        add_variables_in_data(children, data, identifiers)
 
 def p_program(parser):
     'program : statement statements'
@@ -246,16 +361,19 @@ def p_statements(parser):
 if __name__ == "__main__":
     lexer = create_lexer()
     parser = yacc.yacc(start="program")
-    file = "TO mauricio :arroz :feijao"
-    file = file + "\n"
-    file = file + "count = 1"
-    file = file + "\n"
-    file = file + "count = 1"
-    file = file + "\n"
-    file = file + "count = 2"
-    file = file + "\n"
-    file = file + "count = 5"
-    file = file + "\n"
-    file = file + "END"
+    file = "a = 5 b = :a"
+    # file = file + "\n"
+    # file = file + "rafael = 8"
+    # file = file + "\n"
+    # file = file + "TO mauricio :arroz :feijao"
+    # file = file + "\n"
+    # file = file + "t = 3 + 4"
+    # file = file + "\n"
+    # file = file + "count = 2"
+    # file = file + "\n"
+    # file = file + "count = 5"
+    # file = file + "\n"
+    # file = file + "END"
     program = parser.parse(file, lexer=lexer)
+    # print(json.dumps(symbol_table, default=lambda o: o.__dict__, indent=4))
     # print(json.dumps(program, default=lambda o: o.__dict__, indent=4))

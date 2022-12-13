@@ -43,22 +43,22 @@ def p_number_expression(parser):
     # childrens = [expression_left, operator_leaf, expression_right]
     # parser[0] = create_node_with_childrens('number_expression', childrens)
     left = parser[1]
-    if type(left) is Variable:
-        symbol = get_symbol(left.value)
-        if symbol is None:
-            raise Exception(f'Undefined symbol: \'{left.value}\': {parser.lineno(1)}')
-        elif symbol['type'] != 'NUMBER_VARIABLE':
-            raise Exception(f'Symbol: \'{left.value}\' should be NUMBER_VARIABLE type: {parser.lineno(1)}')
+    # if type(left) is Variable:
+    #     symbol = get_symbol(left.value)
+    #     if symbol is None:
+    #         raise Exception(f'Undefined symbol: \'{left.value}\': {parser.lineno(1)}')
+    #     elif symbol['type'] != 'NUMBER_VARIABLE':
+    #         raise Exception(f'Symbol: \'{left.value}\' should be NUMBER_VARIABLE type: {parser.lineno(1)}')
 
     operator = parser[2]
 
     right = parser[3]
-    if type(right) is Variable:
-        symbol = get_symbol(right.value)
-        if symbol is None:
-            raise Exception(f'Undefined symbol: \'{right.value}\': {parser.lineno(3)}')
-        elif symbol['type'] != 'NUMBER_VARIBALE':
-            raise Exception(f'Symbol: \'{right.value}\' should be NUMBER_VARIABLE type: {parser.lineno(3)}')
+    # if type(right) is Variable:
+    #     symbol = get_symbol(right.value)
+    #     if symbol is None:
+    #         raise Exception(f'Undefined symbol: \'{right.value}\': {parser.lineno(3)}')
+    #     elif symbol['type'] != 'NUMBER_VARIBALE':
+    #         raise Exception(f'Symbol: \'{right.value}\' should be NUMBER_VARIABLE type: {parser.lineno(3)}')
 
     node = BinaryOperation(operator, left, right)
     parser[0] = node
@@ -88,12 +88,12 @@ def p_number_expression_minus(parser):
     operator = parser[1]
     expression = parser[2]
 
-    if type(expression) is Variable:
-        symbol = get_symbol(expression.value)
-        if symbol is None:
-            raise Exception(f'Undefined symbol: {expression.value}: {parser.lineno(2)}')
-        elif symbol['type'] != 'NUMBER_VARIBALE':
-            raise Exception(f'Symbol: {expression.value} should be NUMBER_VARIABLE type: {parser.lineno(2)}')
+    # if type(expression) is Variable:
+    #     symbol = get_symbol(expression.value)
+    #     if symbol is None:
+    #         raise Exception(f'Undefined symbol: {expression.value}: {parser.lineno(2)}')
+    #     elif symbol['type'] != 'NUMBER_VARIBALE':
+    #         raise Exception(f'Symbol: {expression.value} should be NUMBER_VARIABLE type: {parser.lineno(2)}')
 
     node = UnaryOperation(operator, expression)
 
@@ -159,7 +159,6 @@ def p_condition(parser):
 
     condition_prime = parser[2]
     if condition_prime is not None:
-        print(condition_prime.operator)
         node = RelationalOperation(condition_prime.operator, first_element, condition_prime.value)
         parser[0] = node
         return
@@ -273,7 +272,7 @@ def p_optional_parameters(parser):
 def p_optional_parameter(parser):
     'optional_parameter : VARIABLE'
     optional_parameter = parser[1]
-    parser[0] = Identifier(optional_parameter[1:])
+    parser[0] = Identifier(optional_parameter[1:], parser.lineno(1))
     # variable = parser[1]
     # variable_leaf = create_leaf('variable', value=variable)
     # parser[0] = create_node_with_one_children('optional_parameter', variable_leaf)
@@ -312,7 +311,6 @@ def p_body_statement(parser):
                    | while
                    | assign
                    | procedure
-                   | procedure_declaration
     '''
     statement = parser[1]
     # parser[0] = create_node_with_one_children('body_statement', statement)

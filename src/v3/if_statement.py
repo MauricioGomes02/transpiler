@@ -1,5 +1,6 @@
 from lexer import tokens
 from common import *
+from symbol_table import Scope
 
 def p_if(parser):
   'if : IF OPEN_PAREN boolean_expression CLOSE_PAREN THEN body else END'
@@ -7,12 +8,16 @@ def p_if(parser):
   body = parser[6]
   _else = parser[7]
 
+  new_if_scope = Scope()
+
   if _else is None:
-    node = If(condition, body)
+    node = If(condition, body, new_if_scope)
     parser[0] = node
     return
+  
+  new_else_scope = Scope()
 
-  node = IfElse(condition, body, _else)
+  node = IfElse(condition, body, _else, new_if_scope, new_else_scope)
   parser[0] = node
 
   # childrens = [condition, body]
@@ -35,13 +40,14 @@ def p_else(parser):
   # parser[0] = create_node_with_one_children('else', body)
 
 class If:
-  def __init__(self, condition, body):
+  def __init__(self, condition, body, scope):
     self.condition = condition
     self.body = body
+    self.scope = scope
 
-  def generate_code(self):
-    condition_code = self.condition.generate_code()
-    body_code = self.body.generate_code()
+  def generate_code(self, scope):
+    condition_code = self.condition.generate_code(scope)
+    body_code = self.body.generate_code(scope)
 
     # if_code = [f'\n{create_label()}']
     if_code = []
@@ -69,10 +75,10 @@ class IfElse:
     self.true = true
     self.false = false
 
-  def generate_code(self):
-    condition_code = self.condition.generate_code()
-    true_code = self.true.generate_code()
-    false_code = self.false.generate_code()
+  def generate_code(self, scope):
+    condition_code = self.condition.generate_code(scope)
+    true_code = self.true.generate_code(scope)
+    false_code = self.false.generate_code(scope)
 
     if_else_code = []
     if_else_code.append('\n\t')

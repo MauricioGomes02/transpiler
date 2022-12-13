@@ -6,9 +6,9 @@ class BooleanOperation:
         self.left = left
         self.right = right
 
-    def generate_code(self):
-        left_expression = self.left.generate_code()
-        right_expression = self.right.generate_code()
+    def generate_code(self, scope):
+        left_expression = self.left.generate_code(scope)
+        right_expression = self.right.generate_code(scope)
         
         boolean_operation_code = []        
         boolean_operation_code.extend(left_expression)

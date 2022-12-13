@@ -6,9 +6,9 @@ class RelationalOperation:
         self.left = left
         self.right = right
 
-    def generate_code(self):
-        left_code = self.left.generate_code()
-        right_code = self.right.generate_code()
+    def generate_code(self, scope):
+        left_code = self.left.generate_code(scope)
+        right_code = self.right.generate_code(scope)
 
         # relational_operation_code = [f'\n{common.create_label()}']
         relational_operation_code = []

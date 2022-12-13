@@ -1,30 +1,39 @@
 from lexer import tokens
-from symbol_table import add_symbol, get_symbol
+from symbol_table import Scope, symbol_table, Symbol, PROCEDURE, NUMBER_VARIABLE, STRING_VARIABLE, BOOLEAN_VARIABLE, ARGUMENT
 from identifier import Identifier
+from assign import Assign
 from common import *
 
 def p_procedure(parser):
   'procedure : IDENTIFIER optional_arguments'
   identifier = parser[1]
-  identifier_leaf = create_leaf('identifier', value=identifier)
-  line = parser.lineno(1)
   optional_arguments = parser[2]
-  childrens = [identifier_leaf]
 
-  if not(identifier_exists(identifier)):
-    raise Exception(f"Undefined '{identifier}' identifier: {line}")
-  else:
-    optional_parameters = get_optional_parameters_from_procedure(identifier)
-    if optional_parameters is not None:
-      optional_parameters_len = len(optional_parameters)
-      if optional_arguments is None or optional_parameters_len != len(get_childrens(optional_arguments)):
-        raise Exception(f'The number of arguments of a procedure must be the same number of parameters of the same: {identifier} : {line}')
-      childrens.append(optional_arguments)
-    else:
-      if optional_arguments is not None:
-        raise Exception(f'The number of arguments of a procedure must be the same number of parameters of the same: {identifier} : {line}')
+  identifier_node = Identifier(identifier, parser.lineno(1))
+  node = Procedure(
+    identifier_node, 
+    optional_arguments)
 
-    parser[0] = create_node_with_childrens('procedure', childrens)
+  parser[0] = node
+  # identifier_leaf = create_leaf('identifier', value=identifier)
+  # line = parser.lineno(1)
+  # optional_arguments = parser[2]
+  # childrens = [identifier_leaf]
+
+  # if not(identifier_exists(identifier)):
+  #   raise Exception(f"Undefined '{identifier}' identifier: {line}")
+  # else:
+  #   optional_parameters = get_optional_parameters_from_procedure(identifier)
+  #   if optional_parameters is not None:
+  #     optional_parameters_len = len(optional_parameters)
+  #     if optional_arguments is None or optional_parameters_len != len(get_childrens(optional_arguments)):
+  #       raise Exception(f'The number of arguments of a procedure must be the same number of parameters of the same: {identifier} : {line}')
+  #     childrens.append(optional_arguments)
+  #   else:
+  #     if optional_arguments is not None:
+  #       raise Exception(f'The number of arguments of a procedure must be the same number of parameters of the same: {identifier} : {line}')
+
+  #   parser[0] = create_node_with_childrens('procedure', childrens)
 
 def p_procedure_declaration(parser):
   'procedure_declaration : TO IDENTIFIER optional_parameters body END'
@@ -32,27 +41,73 @@ def p_procedure_declaration(parser):
   optional_parameters = parser[3]
   body = parser[4]
 
-  node = ProcedureDeclaration(Identifier(identifier), optional_parameters, body)
+  new_scope = Scope()
+  if optional_parameters is not None:
+    for optional_parameter in optional_parameters:
+      new_scope.add_symbol(Symbol(
+        optional_parameter.value,
+        ARGUMENT,
+        None,
+        None,
+        None
+      ))
+
+  identifier_node = Identifier(identifier, parser.lineno(2))
+  node = ProcedureDeclaration(
+    identifier_node, 
+    optional_parameters, 
+    body,
+    new_scope)
   parser[0] = node
 
+class Procedure:
+  def __init__(self, identifier, optional_arguments):
+    self.identifier = identifier
+    self.optional_arguments = optional_arguments
+
+  def generate_code(self, scope):
+    procedure_code = []
+
+    identifier = self.identifier.generate_code(scope)
+    symbol = scope.get_symbol(identifier)
+    local_scope = scope.get_parent()
+    while symbol is None and local_scope is not None:
+        symbol = local_scope.get_symbol(identifier)
+        local_scope = local_scope.get_parent()
+
+    for argument in reversed(self.optional_arguments):
+      procedure_code.append('\n\t')
+      procedure_code.extend(argument.generate_code(scope))
+    
+    procedure_code.append('\n\t')
+    procedure_code.append(f'CALL {identifier}')
+
+    return procedure_code
+
 class ProcedureDeclaration:
-  def __init__(self, identifier, optional_parameters, body):
+  def __init__(self, identifier, optional_parameters, body, scope):
     self.identifier = identifier
     self.optional_parameters = optional_parameters
     self.body = body
+    self.scope = scope
 
-  def generate_code(self):
+  def generate_code(self, scope):
     procedure_declaration_code = ['\n']
-    procedure_declaration_code.append(f'DEF {self.identifier.generate_code()}:')
-    
-    if self.optional_parameters is not None:
-      for optional_parameter in self.optional_parameters:
-        procedure_declaration_code.append('\n\t')
-        optional_parameter_code = optional_parameter.generate_code()
-        procedure_declaration_code.append(f'STOR {optional_parameter_code}')
+    procedure_declaration_code.append(f'DEF {self.identifier.generate_code(scope)}:')
 
-    body_code = self.body.generate_code()
-    procedure_declaration_code.append('\n\t')
+    symbol = scope.get_symbol(self.identifier.value)
+    local_scope = scope.get_parent()
+    while symbol is None and local_scope is not None:
+        symbol = local_scope.get_symbol(self.identifier.value)
+        local_scope = local_scope.get_parent()
+
+    optional_parameters = symbol.optional_parameters
+
+    for optional_parameter in reversed(optional_parameters):
+      procedure_declaration_code.append('\n\t')
+      procedure_declaration_code.append(f'STOR {optional_parameter}')
+
+    body_code = self.body.generate_code(scope)
     procedure_declaration_code.extend(body_code)
 
     return procedure_declaration_code

@@ -1,5 +1,6 @@
+import json
 from lexer import tokens
-from symbol_table import add_symbol, get_symbol
+from symbol_table import add_symbol, get_symbol, NUMBER_VARIABLE, BOOLEAN_VARIABLE, STRING_VARIABLE, Symbol
 from common import *
 from identifier import Identifier
 
@@ -8,27 +9,27 @@ def p_assign(parser):
     identifier = parser[1]
     expression = parser[3]
 
-    symbol = get_symbol(identifier)
+    # symbol = get_symbol(identifier)
 
-    if symbol is not None:
-        _type = symbol['type']
-        if type(expression) is BinaryOperation or type(expression) is Number:
-            if _type != "NUMBER_VARIABLE":
-                raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
-        if type(expression) is Variable:
-            variable_symbol = get_symbol(expression.value)
-            if _type != variable_symbol['type']:
-                raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
-        elif type(expression) is BooleanOperation :
-            if _type != "BOOLEAN_VARIABLE":
-                raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
-        elif type(expression) is String:
-            if _type != "STRING_VARIBALE":
-                raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
-    else:
-        add_symbol(identifier, get_expression_type(expression), parser.lineno(1))
+    # if symbol is not None:
+    #     _type = symbol['type']
+    #     if type(expression) is BinaryOperation or type(expression) is Number:
+    #         if _type != "NUMBER_VARIABLE":
+    #             raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
+    #     if type(expression) is Variable:
+    #         variable_symbol = get_symbol(expression.value)
+    #         if _type != variable_symbol['type']:
+    #             raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
+    #     elif type(expression) is BooleanOperation :
+    #         if _type != "BOOLEAN_VARIABLE":
+    #             raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
+    #     elif type(expression) is String:
+    #         if _type != "STRING_VARIBALE":
+    #             raise Exception(f'{identifier} symbol cannot have its type changed: {parser.lineno(1)}')
+    # else:
+    #     add_symbol(identifier, get_expression_type(expression), parser.lineno(1))
 
-    identifier_leaf = Identifier(identifier)
+    identifier_leaf = Identifier(identifier, parser.lineno(1))
     node = Assign(identifier_leaf, expression)
     parser[0] = node
 
@@ -103,12 +104,72 @@ class Assign:
         self.identifier = identifier
         self.value = value
 
-    def generate_code(self):
+    def generate_code(self, scope):
         assign_code = []
-        assign_code.extend(self.value.generate_code())
-        # if type(self.value) is BooleanOperation or type(self.value) is RelationalOperation:
-        #     assign_code.append('\n')
-        #     assign_code.append(create_label())
+        assign_code.extend(self.value.generate_code(scope))
         assign_code.append('\n\t')
-        assign_code.append(f'STORE {self.identifier.generate_code()}')
+        identifier = self.identifier.generate_code(scope)
+        symbol = scope.get_symbol(identifier)
+        local_scope = scope.get_parent()
+        while symbol is None and local_scope is not None:
+            symbol = local_scope.get_symbol(identifier)
+            local_scope = local_scope.get_parent()
+
+        if symbol is None:
+            raise Exception('Undefined')
+        assign_code.append(f'STORE {symbol.name}')
         return assign_code
+
+    def validate_symbols(self, scope):
+        symbol = None
+        symbol = scope.get_symbol(self.identifier.value)
+        local_scope = scope.parent
+        while symbol is None and local_scope is not None:
+            symbol = scope.get_symbol(self.identifier.value)
+            local_scope = local_scope.get_parent()
+        expression_type = None
+
+        self.value.validate_symbols(scope)
+
+        if type(self.value) is BinaryOperation or type(self.value) is Number:
+            expression_type = NUMBER_VARIABLE
+        elif type(self.value) is BooleanOperation or type(self.value) is RelationalOperation:
+            expression_type = BOOLEAN_VARIABLE
+        elif type(self.value) is Variable:
+            expression_symbol = scope.get_symbol(self.value.value)
+            _local_scope = scope.get_parent()
+            while expression_symbol is None and _local_scope is not None:
+                symbol = _local_scope.get_symbol(self.value.value)
+                _local_scope = _local_scope.get_parent()
+            expression_type = expression_symbol.type
+
+        if symbol is None:
+            scope.add_symbol(Symbol(
+                self.identifier.value,
+                expression_type,
+                None,
+                None,
+                self.identifier.line
+            ))
+            return
+
+        symbol_type = symbol.type
+        if type(self.value) is BinaryOperation or type(self.value) is Number:
+            if symbol_type != NUMBER_VARIABLE:
+                raise Exception(f'{self.identifier.value} symbol cannot have its type changed: {self.identifier.line}')
+        elif type(self.value) is BooleanOperation or type(self.value) is RelationalOperation:
+            if symbol_type != BOOLEAN_VARIABLE:
+                raise Exception(f'{self.identifier.value} symbol cannot have its type changed: {self.identifier.line}')
+        elif type(self.value) is String:
+            if symbol_type != STRING_VARIABLE:
+                raise Exception(f'{self.identifier.value} symbol cannot have its type changed: {self.identifier.line}')
+        elif type(self.value) is Variable:
+            expression_symbol = scope.get_symbol(self.value.value)
+            _local_scope = scope.get_parent()
+            while expression_symbol is None and _local_scope is not None:
+                symbol = _local_scope.get_symbol(self.value.value)
+                _local_scope = _local_scope.get_parent()
+            expression_type = expression_symbol.type
+
+            if symbol_type != expression_type:
+                raise Exception(f'{self.identifier.value} symbol cannot have its type changed: {self.identifier.line}')

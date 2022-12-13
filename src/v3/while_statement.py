@@ -17,9 +17,9 @@ class While:
     self.condition = condition
     self.body = body
 
-  def generate_code(self):
-    condition_code = self.condition.generate_code()
-    body_code = self.body.generate_code()
+  def generate_code(self, scope):
+    condition_code = self.condition.generate_code(scope)
+    body_code = self.body.generate_code(scope)
 
     start = create_label()
     while_code = [f'\n{start}']
